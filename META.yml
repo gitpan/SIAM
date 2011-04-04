@@ -1,0 +1,48 @@
+---
+name: SIAM
+version: 0.01
+author:
+  - 'Stanislav Sinyagin <ssinyagin@k-open.com>'
+abstract: Service Inventory Abstraction Model
+license: mit
+resources:
+  license: http://opensource.org/licenses/mit-license.php
+build_requires:
+  Log::Handler: 0
+  Test::More: 0
+  YAML: 0
+recommends:
+  Log::Handler: 0
+  YAML: 0
+configure_requires:
+  Module::Build: 0.340201
+provides:
+  SIAM:
+    file: lib/SIAM.pm
+    version: 0.01
+  SIAM::AccessScope:
+    file: lib/SIAM/AccessScope.pm
+  SIAM::Attribute:
+    file: lib/SIAM/Attribute.pm
+  SIAM::Contract:
+    file: lib/SIAM/Contract.pm
+  SIAM::Driver::Simple:
+    file: lib/SIAM/Driver/Simple.pm
+  SIAM::Object:
+    file: lib/SIAM/Object.pm
+  SIAM::Privilege:
+    file: lib/SIAM/Privilege.pm
+  SIAM::ScopeMember:
+    file: lib/SIAM/ScopeMember.pm
+  SIAM::Service:
+    file: lib/SIAM/Service.pm
+  SIAM::ServiceDataElement:
+    file: lib/SIAM/ServiceDataElement.pm
+  SIAM::ServiceUnit:
+    file: lib/SIAM/ServiceUnit.pm
+  SIAM::User:
+    file: lib/SIAM/User.pm
+generated_by: Module::Build version 0.340201
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
