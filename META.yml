@@ -1,6 +1,6 @@
 ---
 name: SIAM
-version: 0.01
+version: 0.02
 author:
   - 'Stanislav Sinyagin <ssinyagin@k-open.com>'
 abstract: Service Inventory Abstraction Model
@@ -8,10 +8,12 @@ license: mit
 resources:
   license: http://opensource.org/licenses/mit-license.php
 build_requires:
+  Digest::MD5: 0
   Log::Handler: 0
   Test::More: 0
   YAML: 0
 recommends:
+  Digest::MD5: 0
   Log::Handler: 0
   YAML: 0
 configure_requires:
@@ -19,7 +21,7 @@ configure_requires:
 provides:
   SIAM:
     file: lib/SIAM.pm
-    version: 0.01
+    version: 0.02
   SIAM::AccessScope:
     file: lib/SIAM/AccessScope.pm
   SIAM::Attribute:

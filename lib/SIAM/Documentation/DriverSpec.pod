@@ -49,7 +49,7 @@ internal memory. The driver should be able to connect() again.
  $status = $driver->fetch_attributes($attrs);
 
 The argument is a hash reference that contains the SIAM::Object mandatory
-attributes (C<object.id>, C<object.class>, and C<object.container_id>).
+attributes (C<object.id> and C<object.class>).
 
 The driver should populate the provided hashref with the rest of the object's
 attributes, based on its ID and class.
@@ -58,6 +58,15 @@ The method should return undef in case of failures, and true otherwise.
 The failure details should be available through its C<error> and C<errmsg>
 methods.
 
+
+
+=head2 fetch_computable
+
+  $value = $driver->fetch_computable($id, $key);
+
+Returns a computable value for the object. The driver must return empty
+string if the computable is not supported. Returns undef if the object
+ID is invalid.
 
 
 =head2 fetch_contained_object_ids
@@ -79,6 +88,31 @@ relevant object IDs should be returned.
 
 In this example, only the contracts which match the specified access
 scopes are returned.
+
+
+=head2 fetch_contained_classes
+
+  $classes = $driver->fetch_contained_classes($id);
+
+The method returns an arrayref with all object classes that are
+contained within the specified object.
+
+
+
+=head2 fetch_container
+
+  $attr = $driver->fetch_container($id);
+
+The method returns a hashref containing C<object.id> and C<object.class>
+attribute values of the object that is a container for the specified
+object.
+
+The method returns undef if the specified object ID does not exist.
+
+If the container is the SIAM root, only the C<object.id> attribute
+should be returned, with the value I<SIAM.ROOT>.
+
+
 
 =head2 errmsg
 

@@ -1,9 +1,11 @@
 #!perl -T
 
-use Test::More tests => 23;
+use Test::More tests => 32;
 
 use strict;
 use warnings;
+use File::Temp qw/tempfile/;
+use YAML ();
 use SIAM;
 use SIAM::Driver::Simple;
 
@@ -44,9 +46,9 @@ ok( defined(my $siam = new SIAM($config)), 'load SIAM');
 note('connecting the driver');
 ok($siam->connect(), 'connect');
 
-ok(defined($siam->instantiate_object('SIAM::ServiceDataElement',
-                                     'SRVC0001.02.u01.d01')),
-   '$siam->instantiate_object');
+my $dataelement = $siam->instantiate_object('SIAM::ServiceDataElement',
+                                            'SRVC0001.02.u01.d01');
+ok(defined($dataelement), '$siam->instantiate_object');
 
 ### user: root
 note('testing the root user');
@@ -181,6 +183,55 @@ ok((not defined($filtered->{'access.bgp.peer.addr'}))) or
 ok( defined($filtered->{'access.speed.downstream'})) or
     diag('User perpetualair is supposed to see access.speed.downstream');
 
+
+### $object->contained_in()
+note('testing $object->contained_in()');
+my $x1 = $user2_contracts->[0]->contained_in();
+ok(not defined($x1)) or
+    diag('contained_in() did not return undef as expected');
+
+my $x2 = $dataelement->contained_in();
+ok(defined($x2)) or diag('contained_in() returned undef');
+
+ok($x2->attr('object.class') eq 'SIAM::ServiceUnit') or
+    diag('contained_in() returned object.class: ' . $x2->attr('object.class'));
+
+ok($x2->id eq 'SRVC0001.02.u01') or
+    diag('contained_in() returned object.id: ' . $x2->id);
+
+### contract.content_md5hash
+note('testing computable: contract.content_md5hash');
+my $md5sum = $user2_contracts->[0]->computable('contract.content_md5hash');
+ok(defined($md5sum) and $md5sum ne '') or
+    diag('Computable contract.content_md5hash returned undef or empty string');
+
+my $expected_md5 = 'a04984facd3492a127f20c42048a2155';
+ok($md5sum eq $expected_md5) or
+    diag('Computable contract.content_md5hash returned unexpected value: ' .
+         $md5sum);
+
+$siam->_driver->{'objects'}{'SRVC0001.02.u01.d01'}{'torrus.nodeid'} = 'xx';
+ok($user2_contracts->[0]->computable('contract.content_md5hash') ne
+   $expected_md5) or
+    diag('Computable contract.content_md5hash did not change as expected');
+
+
+### clone_data
+note('testing SIAM::Driver::Simple->clone_data');
+my ($fh, $filename) = tempfile();
+binmode($fh, ':utf8');
+
+ok(SIAM::Driver::Simple->clone_data($siam, $fh,
+                                    {'SIAM::Contract' => '0002$'}));
+$fh->close;
+my $data = YAML::LoadFile($filename);
+my $len = scalar(@{$data});
+ok( $len == 18 ) or
+    diag('clone_data is expected to produce array of size 18, got: ' . $len);
+
+unlink $filename;
+
+   
 
 
 

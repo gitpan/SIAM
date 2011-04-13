@@ -16,11 +16,11 @@ SIAM - Service Inventory Abstraction Model
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
@@ -216,6 +216,12 @@ sub new
         return undef;
     }
 
+    if( not SIAM::Object->validate_driver($driver) )
+    {
+        SIAM::Object->critical('Failed to validate the driver');
+        return undef;
+    }
+
     my $root_attr = $config->{'Root'}{'Attributes'};
     if( not defined($root_attr) )
     {
@@ -279,29 +285,6 @@ sub disconnect
     $self->_driver->disconnect();
 }
 
-
-=head2 instantiate_object
-
-Expects the object class and ID. Returns an object retrieved from the driver.
-
-=cut
-
-sub instantiate_object
-{
-    my $self = shift;
-    my $obj_class = shift;
-    my $obj_id = shift;
-
-    my $obj = eval 'new ' . $obj_class . '($self->_driver, $obj_id)';
-    if( $@ )
-    {
-        $self->error('Cannot instantiate object of class "' . $obj_class .
-                     '" and ID "' . $obj_id . '": ' . $@);
-        return undef;
-    }
-    
-    return $obj;
-}
 
 
 =head2 get_user

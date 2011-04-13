@@ -5,6 +5,7 @@ use strict;
 
 use YAML ();
 use Log::Handler;
+use Digest::MD5 ();
 
 =head1 NAME
 
@@ -41,9 +42,7 @@ C<SIAM::Service> objects.
 
 All other keys in the object entry define the object attributes. The
 values are expected to be strings and numbers. The data file should
-define all the attributes, including C<object.id> and C<object.class>,
-with a single exclusion for C<object.container_id> which is calculated
-automatically.
+define all the attributes, including C<object.id> and C<object.class>.
 
 See the file I<t/driver-simple.data.yaml> in SIAM package distribution
 for reference.
@@ -137,6 +136,7 @@ sub connect
     $self->{'objects'} = {};
     $self->{'attr_index'} = {};
     $self->{'contains'} = {};
+    $self->{'container'} = {};
     $self->{'data_ready'} = 1;
     
     foreach my $obj (@{$data})
@@ -185,8 +185,9 @@ sub _import_object
     }
     
     $self->{'objects'}{$id} = $dup;    
-    $self->{'contains'}{$class}{$container_id}{$id} = 1;
-
+    $self->{'contains'}{$container_id}{$class}{$id} = 1;
+    $self->{'container'}{$id} = $container_id;
+        
     if( defined($obj->{'_contains_'}) )
     {
         foreach my $contained_obj (@{$obj->{'_contains_'}})
@@ -210,6 +211,7 @@ sub disconnect
     delete $self->{'objects'};
     delete $self->{'attr_index'};
     delete $self->{'contains'};
+    delete $self->{'container'};
     $self->{'data_ready'} = 0;
 }
 
@@ -246,6 +248,69 @@ sub fetch_attributes
     }
     
     return 1;
+}
+    
+
+=head2 fetch_computable
+
+  $value = $driver->fetch_computable($id, $key);
+
+Retrieve a computable. Return empty string if unsupported.
+
+=cut
+
+sub fetch_computable
+{
+    my $self = shift;
+    my $id = shift;
+    my $key = shift;
+
+    my $obj = $self->{'objects'}{$id};
+    if( not defined($obj) )
+    {
+        $self->error('Object not found: ' . $id );
+        return undef;
+    }
+
+    if( $key eq 'contract.content_md5hash' )
+    {
+        if( $obj->{'object.class'} eq 'SIAM::Contract' )
+        {
+            my $md5 = new Digest::MD5;
+            $self->_object_content_md5($id, $md5);
+            return $md5->hexdigest();
+        }
+    }
+    
+    return '';
+}
+            
+
+# recursively add all contained objects for MD5 calculation
+sub _object_content_md5
+{
+    my $self = shift;
+    my $id = shift;
+    my $md5 = shift;
+
+    my $obj = $self->{'objects'}{$id};
+    
+    foreach my $attr (sort keys %{$obj})
+    {
+        $md5->add($attr . '//' . $obj->{$attr});
+    }
+
+    if( defined($self->{'contains'}{$id}) )
+    {
+        foreach my $class (sort keys %{$self->{'contains'}{$id}})
+        {
+            foreach my $contained_id (sort
+                                      keys %{$self->{'contains'}{$id}{$class}})
+            {
+                $self->_object_content_md5($contained_id, $md5);
+            }
+        }        
+    }
 }
     
 
@@ -288,15 +353,69 @@ sub fetch_contained_object_ids
         }
     }
     
-    if( defined($self->{'contains'}{$class}{$container_id}) )
+    if( defined($self->{'contains'}{$container_id}{$class}) )
     {
-        push(@{$ret}, keys %{$self->{'contains'}{$class}{$container_id}});
+        push(@{$ret}, keys %{$self->{'contains'}{$container_id}{$class}});
     }
 
     return $ret;
 }
 
 
+
+=head2 fetch_contained_classes
+
+  $classes = $driver->fetch_contained_classes($id);
+
+Returns arrayref with class names.
+
+=cut
+
+sub fetch_contained_classes
+{
+    my $self = shift;
+    my $id = shift;
+
+    my $ret = [];
+    if( defined($self->{'contains'}{$id}) )
+    {
+        foreach my $class (sort keys %{$self->{'contains'}{$id}})
+        {
+            push(@{$ret}, $class);
+        }
+    }
+    return $ret;
+}
+
+
+=head2 fetch_container
+
+  $attr = $driver->fetch_container($id);
+
+Retrieve the container ID and class.
+
+=cut
+
+sub fetch_container
+{
+    my $self = shift;
+    my $id = shift;
+
+    my $container_id = $self->{'container'}{$id};
+    if( not defined($container_id) )
+    {
+        return undef;
+    }
+
+    my $ret = {'object.id' => $container_id};
+    if( $container_id ne 'SIAM.ROOT' )
+    {
+        $ret->{'object.class'} =
+            $self->{'objects'}{$container_id}{'object.class'};
+    }
+    
+    return $ret;
+}
 
 
 =head2 errmsg
@@ -347,10 +466,94 @@ sub error
 }
 
 
+=head2 clone_data
 
+  SIAM::Driver::Simple->clone_data($siam, $fh,
+                                   {'SIAM::Contract' => 'CTRT000[12]'});
 
+The method takes a SIAM object, a write file handle, and optional hashref with
+filters. The method walks through the SIAM data and produces a YAML data
+file suitable for use by C<SIAM::Driver::Simple>. The method is usable
+for producing a test data out of productive system.
 
+The third argument, if present, defines regular expressions to filter
+the object IDs. Keys are object classes, and values are regular
+expressions which would be matched against object IDs.
 
+=cut
+
+sub clone_data
+{
+    my $class = shift;
+    my $siam = shift;
+    my $outfh = shift;
+    my $filters = shift;
+
+    my $data =
+        SIAM::Driver::Simple->_retrieve_object_data($siam, $filters);
+    
+    print $outfh YAML::Dump($data);
+
+    return 1;
+}
+
+# recursively walk the objects
+    
+sub _retrieve_object_data
+{
+    my $class = shift;
+    my $obj = shift;
+    my $filters = shift;
+
+    my $ret = {};
+
+    if( not $obj->is_root() )
+    {
+        my $attrs = $obj->attributes();
+        while(my($key, $val) = each %{$attrs})
+        {
+            $ret->{$key} = $val;
+        }
+    }
+
+    my $contained_data = [];
+    my $classes = $obj->_driver->fetch_contained_classes($obj->id);
+    foreach my $objclass ( @{$classes} )
+    {
+        my $re;
+        if( defined($filters) and defined($filters->{$objclass}) )
+        {
+            $re = $filters->{$objclass};
+        }
+
+        my $objects = $obj->get_contained_objects($objclass);
+        foreach my $contained_obj (@{$objects})
+        {
+            if( not defined($re) or
+                $contained_obj->id() =~ $re )
+            {
+                push(@{$contained_data}, 
+                     SIAM::Driver::Simple->_retrieve_object_data
+                     ($contained_obj, $filters));
+            }
+        }
+    }
+
+    if( scalar(@{$contained_data}) > 0 )
+    {
+        if( $obj->is_root() )
+        {
+            return $contained_data;
+        }
+        else
+        {
+            $ret->{'_contains_'} = $contained_data;
+        }
+    }
+
+    return $ret;
+}
+                     
 
 
 
