@@ -1,6 +1,6 @@
 ---
 name: SIAM
-version: 0.03
+version: 0.04
 author:
   - 'Stanislav Sinyagin <ssinyagin@k-open.com>'
 abstract: Service Inventory Abstraction Model
@@ -11,7 +11,7 @@ build_requires:
   Digest::MD5: 0
   Log::Handler: 0
   Test::More: 0
-  YAML: 0
+  YAML: 0.71
 recommends:
   Digest::MD5: 0
   Log::Handler: 0
@@ -21,7 +21,7 @@ configure_requires:
 provides:
   SIAM:
     file: lib/SIAM.pm
-    version: 0.03
+    version: 0.04
   SIAM::AccessScope:
     file: lib/SIAM/AccessScope.pm
   SIAM::Attribute:
