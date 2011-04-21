@@ -42,7 +42,8 @@ C<SIAM::Service> objects.
 
 All other keys in the object entry define the object attributes. The
 values are expected to be strings and numbers. The data file should
-define all the attributes, including C<object.id> and C<object.class>.
+define all the attributes, including C<siam.object.id> and
+C<siam.object.class>.
 
 See the file I<t/driver-simple.data.yaml> in SIAM package distribution
 for reference.
@@ -134,6 +135,7 @@ sub connect
     }
 
     $self->{'objects'} = {};
+    $self->{'cont_attr_index'} = {};
     $self->{'attr_index'} = {};
     $self->{'contains'} = {};
     $self->{'container'} = {};
@@ -155,19 +157,19 @@ sub _import_object
     my $obj = shift;
     my $container_id = shift;
 
-    my $id = $obj->{'object.id'};
+    my $id = $obj->{'siam.object.id'};
     if( not defined($id) )
     {
         $self->error($container_id .
-                     ' contains an object without "object.id"' );
+                     ' contains an object without "siam.object.id"' );
         $self->{'data_ready'} = 0;
         return;
     }
 
-    my $class = $obj->{'object.class'};
+    my $class = $obj->{'siam.object.class'};
     if( not defined($class) )
     {
-        $self->error('Object ' . $id . ' does not have "object.class"' );
+        $self->error('Object ' . $id . ' does not have "siam.object.class"' );
         $self->{'data_ready'} = 0;
         return;
     }
@@ -180,7 +182,9 @@ sub _import_object
         if( $key ne '_contains_' )
         {
             $dup->{$key} = $val;
-            $self->{'attr_index'}{$class}{$container_id}{$key}{$val}{$id} = 1;
+            $self->{'cont_attr_index'}{$class}{$container_id}{
+                $key}{$val}{$id} = 1;
+            $self->{'attr_index'}{$class}{$key}{$val}{$id} = 1;
         }
     }
     
@@ -229,10 +233,10 @@ sub fetch_attributes
     my $self = shift;
     my $obj = shift;
 
-    my $id = $obj->{'object.id'};
+    my $id = $obj->{'siam.object.id'};
     if( not defined($id) )
     {
-        $self->error('object.id is not specified in fetch_attributes' );      
+        $self->error('siam.object.id is not specified in fetch_attributes' );
         return undef;
     }
     
@@ -272,9 +276,9 @@ sub fetch_computable
         return undef;
     }
 
-    if( $key eq 'contract.content_md5hash' )
+    if( $key eq 'siam.contract.content_md5hash' )
     {
-        if( $obj->{'object.class'} eq 'SIAM::Contract' )
+        if( $obj->{'siam.object.class'} eq 'SIAM::Contract' )
         {
             my $md5 = new Digest::MD5;
             $self->_object_content_md5($id, $md5);
@@ -297,7 +301,7 @@ sub _object_content_md5
     
     foreach my $attr (sort keys %{$obj})
     {
-        $md5->add($attr . '//' . $obj->{$attr});
+        $md5->add('#' . $attr . '//' . $obj->{$attr} . '#');
     }
 
     if( defined($self->{'contains'}{$id}) )
@@ -318,7 +322,7 @@ sub _object_content_md5
 =head2 fetch_contained_object_ids
 
    $ids = $driver->fetch_contained_object_ids($id, 'SIAM::Contract', {
-       'match_attribute' => [ 'object.access_scope_id',
+       'match_attribute' => [ 'siam.object.access_scope_id',
                               ['SCOPEID01', 'SCOPEID02'] ]
       }
      );
@@ -345,7 +349,7 @@ sub fetch_contained_object_ids
             foreach my $val (@{$filter_val})                
             {
                 push(@{$ret}, 
-                     keys %{$self->{'attr_index'}{$class}{$container_id}{
+                     keys %{$self->{'cont_attr_index'}{$class}{$container_id}{
                          $filter_attr}{$val}});
             }
 
@@ -407,14 +411,52 @@ sub fetch_container
         return undef;
     }
 
-    my $ret = {'object.id' => $container_id};
+    my $ret = {'siam.object.id' => $container_id};
     if( $container_id ne 'SIAM.ROOT' )
     {
-        $ret->{'object.class'} =
-            $self->{'objects'}{$container_id}{'object.class'};
+        $ret->{'siam.object.class'} =
+            $self->{'objects'}{$container_id}{'siam.object.class'};
     }
     
     return $ret;
+}
+
+
+=head2 fetch_object_ids_by_attribute
+
+  $list = $driver->fetch_object_ids_by_attribute($classname, $attr, $value);
+
+Returns a list of object IDs which match the attribute value.
+
+=cut
+
+sub fetch_object_ids_by_attribute
+{
+    my $self = shift;
+    my $class = shift;
+    my $attr = shift;
+    my $value = shift;
+
+    return [keys %{$self->{'attr_index'}{$class}{$attr}{$value}}];
+}
+        
+
+
+=head2 set_condition
+
+The method does nothing in this driver, but only issues a debug message.
+
+=cut
+
+sub set_condition
+{
+    my $self = shift;
+    my $id = shift;    
+    my $key = shift;
+    my $value = shift;
+
+    $self->debug('set_condition is called for ' . $id . ': (' .
+                 $key . ', ' . $value . ')');
 }
 
 

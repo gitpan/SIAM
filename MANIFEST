@@ -4,6 +4,7 @@ lib/SIAM.pm
 lib/SIAM/AccessScope.pm
 lib/SIAM/Attribute.pm
 lib/SIAM/Contract.pm
+lib/SIAM/Device.pm
 lib/SIAM/Documentation/DataModel.pod
 lib/SIAM/Documentation/DriverSpec.pod
 lib/SIAM/Driver/Simple.pm

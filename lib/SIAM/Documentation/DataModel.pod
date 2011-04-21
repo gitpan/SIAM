@@ -22,8 +22,8 @@ for a particular object class.
 Visibility of attributes and their values is defined by Access Scope
 associated with a particular client user.
 
-Attribute names with certain prefixes are reserved solely for SIAM use:
-siam.*, object.*, contract.*, svc.*, svcunit.*, svcdata.*, ...
+Attribute names starting with the prefix siam.* are reserved solely for
+SIAM use.
 
 In boolean attributes, numerical zero is interpreted as "false", and numerical
 nonzero is treated as "true". Usually numerical 1 indicates a true value.
@@ -42,6 +42,13 @@ attributes, and are only delivered via explicit method calls. In case if
 the underlying driver does not support a particular computable, it
 should return an empty string.
 
+The driver may define I<conditions> for some objects. A condition is a
+(key, value) pair that the SIAM client application sends towards the
+driver. This is a one-way communication: there is no direct access to
+the condition value, and the driver is free to do anything with it or
+ignore it. Usually drivers update some internal state databases upin
+receiveing a new condition.
+
 In this document, XYZ refers to the enterprise name.
 
 =head2 SIAM::Object
@@ -52,7 +59,7 @@ mandatory for every object:
 
 =over 4
 
-=item * object.id
+=item * siam.object.id
 
 The attribute defines a unique identifier for the object. Client
 applications must not set any assumptions on the ID values or their
@@ -61,40 +68,25 @@ are only meaningful within the driver data model.  Maximum length: 1024
 bytes. The identifiers starting with the string I<SIAM.> are reserved to
 the SIAM internals and must not be used by the drivers.
 
-=item * object.class
+=item * siam.object.class
 
 The full Perl package name of the object, such as I<SIAM::ServiceUnit>.
 The back-end drivers should rely on these values in their internal
 logics.  The drivers should be flexible enough to accept new object
 classes without breaking the logics.
 
-=back
+=item * siam.object.complete
 
+The attribute should return true value when it's completely ready to
+use. For example, a Service Data Element object may not be ready to
+deliver the data because the underlying system has not yet prepared
+it. In this case, this attribute would return false value.
 
-
-=head2 Root object
-
-The root object of class C<SIAM> is the only object in the hierarchy that is
-not retrieved from the back-end driver. Its attributes are defined by the
-calling application upon initialization.
-
-Attributes:
-
-=over 4
-
-=item * siam.enterprise_name
-
-Company name as displayed to the end user. Default: I<Example Inc.>
-
-=item * siam.enterprise_url
-
-Link to the company website. Default: I<http://www.example.com>
-
-=item * siam.enterprise_logo_url
-
-Link to the company logo image. Default: I<http://www.example.org/foo.png>
+If the driver does not deliver a value for this attribute, SIAM::Object
+sets it to true.
 
 =back
+
 
 The following object IDs are predefined by SIAM and are not queried via
 the driver:
@@ -119,6 +111,13 @@ implicitly in it.
 
 
 
+=head2 Root object
+
+The root object of class C<SIAM> is the only object in the hierarchy that is
+not retrieved from the back-end driver. The root object has no attributes.
+
+
+
 =head2 SIAM::Contract
 
 The enterprise billing system would usually work with
@@ -128,16 +127,16 @@ Mandatory attributes:
 
 =over 4
 
-=item * contract.inventory_id
+=item * siam.contract.inventory_id
 
 Contract identifier in external inventory. This should refer to the
 contract number as seen in the enterprise billing system.
 
-=item * contract.customer_name
+=item * siam.contract.customer_name
 
 String identifying the contract holder name
 
-=item * contract.last_modified
+=item * siam.contract.last_modified
 
 UNIX timestamp of last change in any contract details. This attribute
 may be set to zero if the underlying system is unable to deliver the last
@@ -149,7 +148,7 @@ Computables:
 
 =over 4
 
-=item * contract.content_md5hash
+=item * siam.contract.content_md5hash
 
 Returns a hex string representing the MD5 hash of all the objects
 related to this contract. The client application may use this value as
@@ -179,17 +178,17 @@ Mandatory attributes:
 
 =over 4
 
-=item * svc.procuct_name
+=item * siam.svc.procuct_name
 
 A name from the enterprise's product catalog.
 
-=item * svc.type
+=item * siam.svc.type
 
 A string from a limited dictionary of predefined service types. It
 refers to a service template which identifies the attributes which are
 required for each service type.
 
-=item * svc.inventory_id
+=item * siam.svc.inventory_id
 
 Service ID in external inventory, such as the billing system.
 
@@ -199,9 +198,9 @@ Service ID in external inventory, such as the billing system.
 
 =head2 SIAM::ServiceUnit
 
-Service Unit is an elementary physical entity comprising a Service. For
-example, a WAN connection may consist of several physical links, and
-each link would be identified as a Unit.
+Service Unit is an elementary physical or logical entity comprising a
+service. For example, a WAN connection may consist of several physical
+links, and each link would be identified as a Unit.
 
 In many SP environments each Service would only consist of one
 Unit. This assignment depends on the internal SP service definitions.
@@ -220,23 +219,27 @@ Mandatory attributes:
 
 =over 4
 
-=item * svcunit.name
+=item * siam.svcunit.name
 
 Service Unit name as displayed to the user.
 
-=item * svcunit.type
+=item * siam.svcunit.type
 
 A string from a limited dictionary of predefined service unit types. It
 refers to a service template which identifies the attributes which are
 required for each unit type.
 
-=item * svcunit.inventory_id
+=item * siam.svcunit.inventory_id
 
 Service Unit ID in external inventory. If it's a strict one-to-one relation
 between Services and their Units, this attribute is equal to
-C<svc.inventory_id>.
+C<siam.svc.inventory_id>.
 
-=item * svcunit.location
+=item * siam.svcunit.device_id
+
+Identifier of an associated SIAM::Device object or NIL.
+
+=item * siam.svcunit.location
 
 Free-form location string for the point of service hand-over.
 
@@ -251,7 +254,7 @@ Attribute examples:
 
 Examples of Service Options.
 
-=item * access.node.name, access.port.name, rack.number
+=item * access.port.name, rack.number
 
 Examples of Implementation Attributes.
 
@@ -278,28 +281,21 @@ Mandatory attributes:
 
 =over 4
 
-=item * svcdata.name
+=item * siam.svcdata.name
 
 Data Element name as displayed to the user. SIAM clients should only use
 it for displaying, and should not build any logic on its value.
 
-=item * svcdata.type
+=item * siam.svcdata.type
 
 A string from a limited dictionary. SIAM clients may build the data
 representation based on the value of this attribute. Example:
 “TrafficStats”.
 
-=item * svcdata.driver_class
+=item * siam.svcdata.driver_class
 
 Name of the data driver. 
 Examples: I<Torrus::SIAM::TimeSeries>, I<Torrus::SIAM::MonthlyUsage>
-
-=item * svcdata.available
-
-If the data driver is not ready to provide the data, this
-attribute must return false value. The front-end system should inform
-the user that the data is currently unavailable if this attribute
-returns a false value.
 
 =back
 
@@ -327,6 +323,40 @@ Example of a reference to VmWare server statistics in an SQL database.
 =back
 
 
+=head2 SIAM::Device
+
+Device objects describe the physical or virtual devices which are
+associated with Service Units. One Unit can be associated with zero or
+one Device.
+
+Device objects are contained in the root object.
+
+Mandatory attributes:
+
+=over 4
+
+=item * siam.device.inventory_id
+
+Reference to the device identifier in an external inventory system. This
+may or may not be the same as hostname.
+
+=back
+
+Attribute examples:
+
+=over 4
+
+=item * snmp.managed, snmp.host, snmp.version, snmp.community, ...
+
+Attributes that define SNMP access to the device.
+
+=item * asset.owner
+
+Attribute that allows to distinguish between ISP's own and foreign devices.
+
+=back
+
+
 
 =head2 SIAM::AccessScope
 
@@ -345,12 +375,12 @@ Mandatory attributes:
 
 =over 4
 
-=item * scope.name
+=item * siam.scope.name
 
 Unique name of Access Scope. It has usually a mnemonic value, such as
 I<AllContracts>, I<Contract.123456>, I<Wholesale.654321>.
 
-=item * scope.applies_to
+=item * siam.scope.applies_to
 
 Class of objects that this scope covers. Known values: I<SIAM::Contract>,
 I<SIAM::Attribute>.
@@ -369,7 +399,7 @@ Mandatory attribute:
 
 =over 4
 
-=item * scmember.object_id
+=item * siam.scmember.object_id
 
 ID of a corresponding Contract or Attribute object which comprises the
 given Scope.
@@ -394,7 +424,7 @@ Mandatory attributes:
 
 =over 4
 
-=item * user.uid
+=item * siam.user.uid
 
 Unique user ID that is known through some authentication mechanism.
 
@@ -446,11 +476,11 @@ Mandatory attributes:
 
 =over 4
 
-=item * privilege.access_scope_id
+=item * siam.privilege.access_scope_id
 
 Reference to the corresponding C<SIAM::AccessScope> object ID.
 
-=item * privilege.type
+=item * siam.privilege.type
 
 String from a limited dictionary of known privilege types. Examples:
 I<ViewContract>, I<ViewAttribute>, I<SuspendContract>
@@ -465,7 +495,7 @@ Attribute objects are only used for their relation to Access
 Scopes. This relation is usually static and stored directly in SIAM
 configuration.
 
-For example, some Implementation Attributes, such as I<access.node.name>,
+For example, some Implementation Attributes, such as 
 I<access.port.name>, I<rack.number>, would be associated with the scope
 I<ImplementarionAttributes>, and only the ISP personnel users would be
 able to see their values.
@@ -476,7 +506,7 @@ Mandatory attributes:
 
 =over 4
 
-=item * attribute.name
+=item * siam.attribute.name
 
 Name of the attribute.
 

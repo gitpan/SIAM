@@ -1,5 +1,14 @@
 Revision history for SIAM
 
+0.05    2011-04-21
+        * Removed all attributes from the root object
+        * All SIAM attribute names are now prefixed with siam.*
+        * Replaced siam.svcdata.available with siam.object.complete
+        * set_condition(): a new method in SIAM::Object and in driver
+        * new method: get_objects_by_attribute in SIAM::Object
+        * new method: fetch_object_ids_by_attribute in driver
+        * new object class: SIAM::Device
+        
 0.04    2011-04-17
         * YAML version 0.71 or higher required. The older ones did not treat
         UTF-8 data correclty.
@@ -9,7 +18,7 @@ Revision history for SIAM
         * Removed Makefile.PL from distribution
         * Replaced object.container_id with a method contained_in()
         * Moved instantiate_object() from SIAM into SIAM::Object
-        * Added computable: contract.content_md5hash
+        * Added computable: siam.contract.content_md5hash
         * Enabled driver validation
         * Added method: SIAM::Driver::Simple->clone_data
 

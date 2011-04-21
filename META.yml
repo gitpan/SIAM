@@ -1,6 +1,6 @@
 ---
 name: SIAM
-version: 0.04
+version: 0.05
 author:
   - 'Stanislav Sinyagin <ssinyagin@k-open.com>'
 abstract: Service Inventory Abstraction Model
@@ -21,13 +21,15 @@ configure_requires:
 provides:
   SIAM:
     file: lib/SIAM.pm
-    version: 0.04
+    version: 0.05
   SIAM::AccessScope:
     file: lib/SIAM/AccessScope.pm
   SIAM::Attribute:
     file: lib/SIAM/Attribute.pm
   SIAM::Contract:
     file: lib/SIAM/Contract.pm
+  SIAM::Device:
+    file: lib/SIAM/Device.pm
   SIAM::Driver::Simple:
     file: lib/SIAM/Driver/Simple.pm
   SIAM::Object:

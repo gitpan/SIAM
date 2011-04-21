@@ -39,8 +39,8 @@ sub new
     my $self = {};
     bless $self, $class;
 
-    $self->{'_attr'} = {'object.id'    => $id,
-                        'object.class' => $class};    
+    $self->{'_attr'} = {'siam.object.id'    => $id,
+                        'siam.object.class' => $class};    
     $self->{'_driver'} = $driver;
 
     # retrieve attributes from the driver unless I am root
@@ -52,6 +52,13 @@ sub new
             return undef;
         }
 
+        # set siam.object.complete to true if undefined
+        if( not defined($self->{'_attr'}{'siam.object.complete'}) )
+        {
+            $self->{'_attr'}{'siam.object.complete'} = 1;
+        }
+
+        # check if mandatory attributes are defined by the driver
         if( $self->can('_mandatory_attributes') )
         {
             foreach my $attr (@{ $self->_mandatory_attributes() })
@@ -111,7 +118,7 @@ define a filter criteria as follows:
 
  my $list =
    $siam->get_contained_objects('SIAM::Contract', {
-       'match_attribute' => [ 'object.access_scope_id',
+       'match_attribute' => [ 'siam.object.access_scope_id',
                                  ['SCOPEID01', 'SCOPEID02'] ]
      });
 
@@ -126,7 +133,6 @@ sub get_contained_objects
     my $options = shift;
 
     my $driver = $self->_driver;
-
     my $ids =
         $driver->fetch_contained_object_ids($self->id, $classname, $options);
     
@@ -149,18 +155,61 @@ sub get_contained_objects
 }
 
 
-=head2 id
+=head2 get_objects_by_attribute
 
-Returns a value of C<object.id> attribute
+  my $list = $siam->get_objects_by_attribute(
+       'SIAM::Device', 'siam.device.inventory_id', $id);
+
+The method takes 3 arguments: class name, attribute name, and attribute
+value. It returns an arrayref of objects matching the attribute. Empty
+arrayref is returned if no objects match the criteria.
 
 =cut
 
-sub id { shift->attr('object.id') }
+sub get_objects_by_attribute
+{
+    my $self = shift;
+    my $classname = shift;
+    my $attr = shift;
+    my $value = shift;
+
+    my $driver = $self->_driver;
+    my $ids =
+        $driver->fetch_object_ids_by_attribute($classname, $attr, $value);
+    
+    my $ret = [];
+    foreach my $id (@{$ids})
+    {
+        my $obj = eval($classname . '->new($driver, $id)');
+        
+        if( $@ )
+        {
+            SIAM::Object->critical($@);
+        }
+        elsif( defined($obj) )
+        {
+            push(@{$ret}, $obj);
+        }
+    }
+
+    return $ret;
+}
+    
+
+
+
+=head2 id
+
+Returns a value of C<siam.object.id> attribute
+
+=cut
+
+sub id { shift->attr('siam.object.id') }
 
 
 =head2 attr
 
- $val = $contract->attr('contract.inventory_id');
+ $val = $contract->attr('siam.contract.inventory_id');
 
 Returns a value of an attribute.
 
@@ -195,7 +244,7 @@ sub attributes
 
 =head2 computable
 
- $val = $contract->computable('contract.content_md5hash');
+ $val = $contract->computable('siam.contract.content_md5hash');
 
 Returns a value of a computable.
 
@@ -209,7 +258,25 @@ sub computable
 }
 
 
+=head2 set_condition
 
+ $dataelement->set_condition('torrus.import_successful', 1);
+
+The SIAM client application may use this method to send a (key, value)
+pair to the driver and tell it about some state update. The condition
+names and accepted values are defined by the driver and are
+driver-specific. This is a one-way communication, and there is no way to
+read the condition value.
+
+=cut
+
+sub set_condition
+{
+    my $self = shift;
+    my $key = shift;
+    my $value = shift;
+    $self->_driver->set_condition($self->id, $key, $value);
+}
 
 =head2 is_root
 
@@ -242,13 +309,13 @@ sub contained_in
     my $self = shift;
 
     my $attr = $self->_driver->fetch_container($self->id);
-    if( $attr->{'object.id'} eq 'SIAM.ROOT' )
+    if( $attr->{'siam.object.id'} eq 'SIAM.ROOT' )
     {
         return undef;
     }
     
-    return $self->instantiate_object($attr->{'object.class'},
-                                     $attr->{'object.id'});
+    return $self->instantiate_object($attr->{'siam.object.class'},
+                                     $attr->{'siam.object.id'});
 }
     
 
@@ -271,6 +338,7 @@ sub validate_driver
     my $ok = 1;
     foreach my $m ('fetch_attributes', 'fetch_contained_object_ids',
                    'fetch_contained_classes', 'fetch_container',
+                   'fetch_object_ids_by_attribute', 'set_condition',
                    'errmsg', 'connect', 'disconnect')
     {
         if( not $driver->can($m) )

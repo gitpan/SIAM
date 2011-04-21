@@ -1,41 +1,40 @@
-package SIAM::Service;
+package SIAM::Device;
 
 use warnings;
 use strict;
 
 use base 'SIAM::Object';
 
-use SIAM::ServiceUnit;
 
 =head1 NAME
 
-SIAM::Service - Service object class
+SIAM::Device - device object class
 
 =head1 SYNOPSIS
 
-   my $svcunits = $service->get_service_units();
 
 =head1 METHODS
 
-=head2 get_service_units
+=head2 get_all_service_units
 
-Returns arrayref with SIAM::ServiceUnit objects
+returns arrayref with all C<SIAM::ServiceUnit> objects associated with
+this device.
 
 =cut
 
-sub get_service_units
+sub get_all_service_units
 {
     my $self = shift;
-    return $self->get_contained_objects('SIAM::ServiceUnit');
+    
+    return $self->get_objects_by_attribute
+        ('SIAM::ServiceUnit', 'siam.svcunit.device_id', $self->id);
 }
 
 
 # mandatory attributes
 
 my $mandatory_attributes =
-    [ 'siam.svc.product_name',
-      'siam.svc.type',
-      'siam.svc.inventory_id' ];
+    [ 'siam.device.inventory_id' ];
 
 sub _mandatory_attributes
 {
