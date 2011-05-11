@@ -1,6 +1,6 @@
 #!perl -T
 
-use Test::More tests => 35;
+use Test::More tests => 38;
 
 use strict;
 use warnings;
@@ -10,32 +10,28 @@ use SIAM;
 use SIAM::Driver::Simple;
 
 
-my $config =
-{
- 'Driver' =>
- {
-  'Class' => 'SIAM::Driver::Simple',
-  'Options' =>
-  {
-   'datafile' => 't/driver-simple.data.yaml',
-   'logger' =>
-   {
-    'screen' =>
-    {
-     'log_to'   => 'STDERR',
-     'maxlevel' => 'warning',
-     'minlevel' => 'emergency',
-    },
-   }
-  },
- },
-};
+my $yaml = <<EOT;
+---
+Driver:
+  Class: SIAM::Driver::Simple
+  Options:
+    Datafile: t/driver-simple.data.yaml
+Client:
+  Test:
+    x: 5
+EOT
+
+my $config = YAML::Load($yaml);
+ok(ref($config)) or diag('Failed to read the configuration YAML');
 
 note('loading SIAM');
 ok( defined(my $siam = new SIAM($config)), 'load SIAM');
 
 note('connecting the driver');
 ok($siam->connect(), 'connect');
+
+ok($siam->get_client_config('Test')->{'x'} == 5) or
+    diag('Failed to retrieve client configuration');
 
 my $dataelement = $siam->instantiate_object('SIAM::ServiceDataElement',
                                             'SRVC0001.02.u01.d01');
@@ -215,7 +211,7 @@ ok(defined($md5sum) and $md5sum ne '') or
     diag('Computable siam.contract.content_md5hash ' .
          'returned undef or empty string');
 
-my $expected_md5 = '66efbf6c2a52abb70952acbfe6bea62c';
+my $expected_md5 = '611ab82c3054fc9ccda157abe28536f2';
 ok($md5sum eq $expected_md5) or
     diag('Computable siam.contract.content_md5hash ' .
          'returned unexpected value: ' . $md5sum);
@@ -241,8 +237,15 @@ ok( $len == 22 ) or
 
 unlink $filename;
 
-   
-
+### manifest_attributes
+note('testing $siam->manifest_attributes()');
+my $manifest = $siam->manifest_attributes();
+my $manifest_size = scalar(@{$manifest});
+my $manifest_size_expected = 50;
+ok($manifest_size == $manifest_size_expected) or
+    diag('$siam->manifest_attributes() returned ' . $manifest_size .
+         ', expected: ' . $manifest_size_expected);
+# print STDERR "\n", join("\n", @{$manifest}), "\n";
 
 
 # Local Variables:

@@ -14,7 +14,6 @@
   siam.object.class:              SIAM::Contract
   siam.contract.inventory_id:     INVC0001
   siam.contract.customer_name:    Perpetualair Lavishbison, Inc.
-  siam.contract.last_modified:    0
   xyz.billing_ok:            1
   _contains_:
     -
@@ -23,6 +22,9 @@
       siam.svc.product_name:     Business Internet Standard
       siam.svc.type:             fttx
       siam.svc.inventory_id:     BIS0001
+      xyz.svc.street:            Musterstrasse 10
+      xyz.svc.zip:               8050
+      xyz.svc.city:              Zürich
       _contains_:
         -
           siam.object.id:            SRVC0001.01.u01
@@ -30,7 +32,6 @@
           siam.svcunit.name:         BIS.64876.45
           siam.svcunit.type:         fttx.p2p
           siam.svcunit.inventory_id: BIS.64876.45
-          siam.svcunit.location:     Musterstrasse 10, 8050 Zürich
           siam.svcunit.device_id:    DEV_ZUR8050AN33
           access.port.name:          Gi3/0/5
           access.speed.downstream:   100
@@ -44,8 +45,10 @@
               siam.object.class:         SIAM::ServiceDataElement
               siam.svcdata.name:         Traffic Statistics
               siam.svcdata.type:         TrafficStats
-              siam.svcdata.driver_class: Torrus::SIAM::TimeSeries
-              torrus.tree-url:           http://test01.torrus.net/torrus/main
+              siam.svcdata.driver:       Torrus.TimeSeries
+              torrus.server:             test01.torrus.net
+              torrus.url-prefix:         /torrus/
+              torrus.tree:               t01
               torrus.nodeid:             xyz-if://BIS.64876.45//inout
           
         -
@@ -55,7 +58,6 @@
           siam.svcunit.type:         fttx.p2p
           siam.svcunit.inventory_id: BIS.89999.56
           siam.svcunit.device_id:    DEV_OLT4600AN03
-          siam.svcunit.location:     Musterstrasse 5, 4600 Olten
           access.port.name:          Gi1/0/7
           access.speed.downstream:   100
           access.speed.upstream:     20
@@ -68,8 +70,10 @@
               siam.object.class:         SIAM::ServiceDataElement
               siam.svcdata.name:         Traffic Statistics
               siam.svcdata.type:         TrafficStats
-              siam.svcdata.driver_class: Torrus::SIAM::TimeSeries
-              torrus.tree-url:           http://test01.torrus.net/torrus/main
+              siam.svcdata.driver:       Torrus.TimeSeries
+              torrus.server:             test01.torrus.net
+              torrus.url-prefix:         /torrus/
+              torrus.tree:               t01              
               torrus.nodeid:             xyz-if://BIS.89999.56//inout
 
           
@@ -79,6 +83,9 @@
       siam.svc.product_name:     Business Rack Space
       siam.svc.type:             xyz.rackspace
       siam.svc.inventory_id:     BIS0002
+      xyz.svc.street:            Datastrasse 77
+      xyz.svc.zip:               8600
+      xyz.svc.city:              Dübendorf
       _contains_:
         -
           siam.object.id:            SRVC0001.02.u01
@@ -87,7 +94,6 @@
           siam.svcunit.type:         rackspace
           siam.svcunit.inventory_id: BRS.8979.23
           siam.svcunit.device_id:    DEV_DUB8600AN04
-          siam.svcunit.location:     Datastrasse 77, 8600 Dübendorf
           access.port.name:          Gi1/2/1
           access.ip_prefix:          2607:f140:55::00/64
           room.id:                   DUB8600R02
@@ -99,8 +105,10 @@
               siam.object.class:         SIAM::ServiceDataElement
               siam.svcdata.name:         Traffic Statistics
               siam.svcdata.type:         TrafficStats
-              siam.svcdata.driver_class: Torrus::SIAM::TimeSeries
-              torrus.tree-url:           http://test01.torrus.net/torrus/main
+              siam.svcdata.driver:       Torrus.TimeSeries
+              torrus.server:             test01.torrus.net
+              torrus.url-prefix:         /torrus/
+              torrus.tree:               t01
               torrus.nodeid:             xyz-if://BRS.8979.23//inout
       
 
@@ -109,7 +117,6 @@
   siam.object.class:              SIAM::Contract
   siam.contract.inventory_id:     INVC0002
   siam.contract.customer_name:    Zetamouse Ecosysteminfo, Inc.
-  siam.contract.last_modified:    0
   _contains_:
     -
       siam.object.id:            SRVC0002.01
@@ -117,6 +124,9 @@
       siam.svc.product_name:     Virtual Private Hosting
       siam.svc.type:             xyz.vps
       siam.svc.inventory_id:     BIS0003
+      xyz.svc.street:            Datastrasse 78
+      xyz.svc.zip:               8600
+      xyz.svc.city:              Dübendorf
       _contains_:
         -
           siam.object.id:            SRVC0002.01.u01
@@ -124,7 +134,6 @@
           siam.svcunit.name:         VPH.8788.99
           siam.svcunit.type:         vps
           siam.svcunit.inventory_id: VPH.8788.99
-          siam.svcunit.location:     Datastrasse 78, 8600 Dübendorf
           siam.svcunit.device_id:    DEV_DUB8600VH05
           vm.phy.type:               esxi
           vm.ram.limit:              1024
@@ -136,16 +145,20 @@
               siam.object.class:         SIAM::ServiceDataElement
               siam.svcdata.name:         Memory Usage
               siam.svcdata.type:         MemoryStats
-              siam.svcdata.driver_class: Torrus::SIAM::TimeSeries
-              torrus.tree-url:           http://test01.torrus.net/torrus/main
+              siam.svcdata.driver:       Torrus.TimeSeries
+              torrus.server:             test01.torrus.net
+              torrus.url-prefix:         /torrus/
+              torrus.tree:               t01
               torrus.nodeid:             xyz-vm://VPH.8788.99//mem
             -
               siam.object.id:            SRVC0002.01.u01.d02
               siam.object.class:         SIAM::ServiceDataElement
               siam.svcdata.name:         CPU Usage
               siam.svcdata.type:         CPUStats
-              siam.svcdata.driver_class: Torrus::SIAM::TimeSeries
-              torrus.tree-url:           http://test01.torrus.net/torrus/main
+              siam.svcdata.driver:       Torrus.TimeSeries
+              torrus.server:             test01.torrus.net
+              torrus.url-prefix:         /torrus/
+              torrus.tree:               t01
               torrus.nodeid:             xyz-vm://VPH.8788.99//cpu
           
 
@@ -154,6 +167,7 @@
   siam.object.id:            DEV_ZUR8050AN33
   siam.object.class:         SIAM::Device
   siam.device.inventory_id:  ZUR8050AN33
+  siam.device.name:          ZUR8050AN33
   snmp.managed:              1
   snmp.host:                 ZUR8050AN33.domain.net
   
@@ -161,6 +175,7 @@
   siam.object.id:            DEV_OLT4600AN03
   siam.object.class:         SIAM::Device
   siam.device.inventory_id:  OLT4600AN03
+  siam.device.name:          OLT4600AN03
   snmp.managed:              1
   snmp.host:                 OLT4600AN03.domain.net
   
@@ -168,6 +183,7 @@
   siam.object.id:            DEV_DUB8600AN04
   siam.object.class:         SIAM::Device
   siam.device.inventory_id:  DUB8600AN04
+  siam.device.name:          DUB8600AN04
   snmp.managed:              1
   snmp.host:                 DUB8600AN04.domain.net
 
@@ -175,6 +191,7 @@
   siam.object.id:            DEV_DUB8600VH05
   siam.object.class:         SIAM::Device
   siam.device.inventory_id:  DUB8600VH05
+  siam.device.name:          DUB8600VH05
   snmp.managed:              1
   snmp.host:                 DUB8600VH05.domain.net
 

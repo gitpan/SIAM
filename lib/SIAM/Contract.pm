@@ -38,14 +38,22 @@ sub get_services
 
 my $mandatory_attributes =
     [ 'siam.contract.inventory_id',
-      'siam.contract.customer_name',
-      'siam.contract.last_modified' ];
+      'siam.contract.customer_name' ];
 
 sub _mandatory_attributes
 {
     return $mandatory_attributes;
 }
 
+sub _manifest_attributes
+{
+    my $ret = [];
+    push(@{$ret}, @{$mandatory_attributes},
+         @{ SIAM::Service->_manifest_attributes() });
+
+    return $ret;
+
+}
 
 1;
 

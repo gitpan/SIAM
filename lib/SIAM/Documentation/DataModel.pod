@@ -136,12 +136,6 @@ contract number as seen in the enterprise billing system.
 
 String identifying the contract holder name
 
-=item * siam.contract.last_modified
-
-UNIX timestamp of last change in any contract details. This attribute
-may be set to zero if the underlying system is unable to deliver the last
-modification time.
-
 =back
 
 Computables:
@@ -178,7 +172,7 @@ Mandatory attributes:
 
 =over 4
 
-=item * siam.svc.procuct_name
+=item * siam.svc.product_name
 
 A name from the enterprise's product catalog.
 
@@ -191,6 +185,16 @@ required for each service type.
 =item * siam.svc.inventory_id
 
 Service ID in external inventory, such as the billing system.
+
+=back
+
+Attribute examples:
+
+=over 4
+
+=item * xyz.svc.city, xyz.svc.zip, xyz.svc.street
+
+Location information for a service.
 
 =back
 
@@ -239,10 +243,6 @@ C<siam.svc.inventory_id>.
 
 Identifier of an associated SIAM::Device object or NIL.
 
-=item * siam.svcunit.location
-
-Free-form location string for the point of service hand-over.
-
 =back
 
 
@@ -290,12 +290,14 @@ it for displaying, and should not build any logic on its value.
 
 A string from a limited dictionary. SIAM clients may build the data
 representation based on the value of this attribute. Example:
-“TrafficStats”.
+"PortTraffic".
 
-=item * siam.svcdata.driver_class
+=item * siam.svcdata.driver
 
-Name of the data driver. 
-Examples: I<Torrus::SIAM::TimeSeries>, I<Torrus::SIAM::MonthlyUsage>
+Name of the data back-end driver. The front-end system is supposed to
+know hoe to retrieve the data based on the driver name and the relevant
+attributes of a data element. Examples: I<Torrus.TimeSeries>,
+I<Torrus.MonthlyUsage>
 
 =back
 
@@ -304,7 +306,7 @@ Attribute examples:
 
 =over 4
 
-=item * torrus.tree-url, torrus.nodeid
+=item * torrus.server, torrus.url-prefix, torrus.tree, torrus.nodeid
 
 Example of a reference to a Torrus data element.
 
@@ -339,6 +341,10 @@ Mandatory attributes:
 
 Reference to the device identifier in an external inventory system. This
 may or may not be the same as hostname.
+
+=item * siam.device.name
+
+Device name.
 
 =back
 

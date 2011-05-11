@@ -37,12 +37,22 @@ my $mandatory_attributes =
     [ 'siam.svcunit.name',
       'siam.svcunit.type',
       'siam.svcunit.inventory_id',
-      'siam.svcunit.device_id',
-      'siam.svcunit.location' ];
+      'siam.svcunit.device_id' ];
 
 sub _mandatory_attributes
 {
     return $mandatory_attributes;
+}
+
+
+sub _manifest_attributes
+{
+    my $ret = [];
+    push(@{$ret}, @{$mandatory_attributes},
+         @{ SIAM::ServiceDataElement->_manifest_attributes() });
+
+    return $ret;
+
 }
 
 
