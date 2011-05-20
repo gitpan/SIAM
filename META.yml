@@ -17,13 +17,15 @@ name: SIAM
 provides:
   SIAM:
     file: lib/SIAM.pm
-    version: 0.07
+    version: 0.08
   SIAM::AccessScope:
     file: lib/SIAM/AccessScope.pm
   SIAM::Attribute:
     file: lib/SIAM/Attribute.pm
   SIAM::Contract:
     file: lib/SIAM/Contract.pm
+  SIAM::Device:
+    file: lib/SIAM/Device.pm
   SIAM::Driver::Simple:
     file: lib/SIAM/Driver/Simple.pm
   SIAM::Object:
@@ -47,4 +49,4 @@ requires:
   Log::Handler: 0
 resources:
   license: http://opensource.org/licenses/mit-license.php
-version: 0.07
+version: 0.08
