@@ -6,6 +6,7 @@ use strict;
 use YAML ();
 use Log::Handler;
 use Digest::MD5 ();
+use File::stat;
 
 =head1 NAME
 
@@ -123,6 +124,9 @@ sub connect
 
     $self->debug('Connecting SIAM::Driver::Simple driver to data file: ' .
                  $self->{'datafile'});
+
+    my $st = stat($self->{'datafile'});
+    $self->{'datafile_lastmod'} = $st->mtime();    
     
     my $data = eval { YAML::LoadFile($self->{'datafile'}) };
     if( $@ )
@@ -144,6 +148,7 @@ sub connect
     $self->{'contains'} = {};
     $self->{'container'} = {};
     $self->{'data_ready'} = 1;
+    $self->{'computable_cache'} = {};
     
     foreach my $obj (@{$data})
     {
@@ -221,6 +226,7 @@ sub disconnect
     delete $self->{'cont_attr_index'};
     delete $self->{'contains'};
     delete $self->{'container'};
+    delete $self->{'computable_cache'};
     $self->{'data_ready'} = 0;
 }
 
@@ -285,9 +291,22 @@ sub fetch_computable
     {
         if( $obj->{'siam.object.class'} eq 'SIAM::Contract' )
         {
+            my $st = stat($self->{'datafile'});
+            if( $st->mtime() != $self->{'datafile_lastmod'} )
+            {
+                $self->disconnect();
+                $self->connect();
+            }
+            elsif( defined($self->{'computable_cache'}{$key}) )
+            {
+                return $self->{'computable_cache'}{$key};
+            }
+                
             my $md5 = new Digest::MD5;
             $self->_object_content_md5($id, $md5);
-            return $md5->hexdigest();
+            my $ret = $md5->hexdigest();
+            $self->{'computable_cache'}{$key} = $ret;
+            return $ret;
         }
     }
     
