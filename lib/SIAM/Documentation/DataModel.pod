@@ -17,7 +17,10 @@ systems as network monitoring, CRM, Customer self-service portals, etc.
 =head2 Conventions
 
 Each object is defined by a set of attributes. Some attributes are mandatory
-for a particular object class. 
+for a particular object class.
+
+Each pair of objects may or may not be in contained/container
+relationship. Any single object may only be contained in one container.
 
 Visibility of attributes and their values is defined by Access Scope
 associated with a particular client user.
@@ -80,10 +83,20 @@ classes without breaking the logics.
 The attribute should return true value when it's completely ready to
 use. For example, a Service Data Element object may not be ready to
 deliver the data because the underlying system has not yet prepared
-it. In this case, this attribute would return false value.
+it. In this case, this attribute would return false value. If the driver
+does not deliver a value for this attribute, SIAM::Object sets it to
+true.
 
-If the driver does not deliver a value for this attribute, SIAM::Object
-sets it to true.
+=item * siam.object.container
+
+The attribute refers to the containing object's ID or is set to NIL.
+
+=item * siam.object.has_reports
+
+This attribute returns a true value if one or more reports is associated
+with it. Reports are usually performed on the underlying contained
+objects. If the driver does not deliver a value for this attribute,
+SIAM::Object sets it to false.
 
 =back
 
@@ -136,6 +149,10 @@ contract number as seen in the enterprise billing system.
 
 String identifying the contract holder name
 
+=item * siam.contract.customer_id
+
+Contract holder ID in the external inventory
+
 =back
 
 Computables:
@@ -166,6 +183,11 @@ These define the internal logic which is specific to particular SIAM use.
 
 A Service is a billing unit within the enterprise. It consists of Service
 Units.
+
+For example, a WAN connectivity service would consist of one Service
+object, consisting of a Service Unit object per location, and one or two
+Service Component objects per Unit for single and redundant physical
+links.
 
 
 Mandatory attributes:
@@ -202,21 +224,19 @@ Location information for a service.
 
 =head2 SIAM::ServiceUnit
 
-Service Unit is an elementary physical or logical entity comprising a
-service. For example, a WAN connection may consist of several physical
-links, and each link would be identified as a Unit.
+Service Unit is an elementary logical entity that builds up a
+service. For example, for a redundant WAN connection, a Service Unit
+would correspond to one WAN location, and it would consist of two
+Service Components for each link.
 
-In many SP environments each Service would only consist of one
-Unit. This assignment depends on the internal SP service definitions.
+A ServiceUnit consists of service options, such as access speed, hosting
+disk size, etc. The corresponding Service Component has implementation
+attributes, such as link identifier, access port, rack number, etc.
 
-A ServiceUnit consists of Service Options, such as access speed, hosting
-disk size, etc, and Implementation Attributes, such as link identifier,
-access port, rack number, etc.
-
-Service Options are usually visible to the customer and are defined in
+Service options are usually visible to the customer and are defined in
 their contract.
 
-Implementation Attributes are internal Service Provider's properties
+Implementation attributes are internal Service Provider's properties
 that document the technical details of the installation.
 
 Mandatory attributes:
@@ -235,101 +255,56 @@ required for each unit type.
 
 =item * siam.svcunit.inventory_id
 
-Service Unit ID in external inventory. If it's a strict one-to-one relation
-between Services and their Units, this attribute is equal to
-C<siam.svc.inventory_id>.
-
-=item * siam.svcunit.device_id
-
-Identifier of an associated SIAM::Device object or NIL.
-
-=back
-
-
-Attribute examples:
-
-=over 4
-
-=item * access.speed.downstream, vm.ram.size
-
-Examples of Service Options.
-
-=item * access.port.name, rack.number
-
-Examples of Implementation Attributes.
+Service Unit ID in external inventory.
 
 =back
 
 
 
 
-=head2 SIAM::ServiceDataElement
+=head2 SIAM::ServiceComponent
 
-Service Units define the physical entities, whereas Data Elements refer
-to associated data, such as statistics.
+A Service Unit consists of one or more physical or logical components,
+and each component is typically associated with physical device
+component. For example, a WAN connection may consist of several physical
+links, and each link would be identified as a Service Component.
 
-Each instance of a Service Unit is usually associated with several data
-elements. For example, a physical link is associated with TrafficStats,
-ErrorStats, MonthlyUsage.
-
-Each Data Element represents a connection to some back-end system that
-actually delivers the data. SIAM provides all attributes necessary for
-accessing the data. It is up to the client application to retrieve the
-data from the back-end system.
+Each Service Component object represents a single management entity,
+such as network port on a device.
 
 Mandatory attributes:
 
 =over 4
 
-=item * siam.svcdata.name
+=item * siam.svcc.name
 
-Data Element name as displayed to the user. SIAM clients should only use
-it for displaying, and should not build any logic on its value.
+Service Component name as displayed to the user.
 
-=item * siam.svcdata.type
+=item * siam.svcc.type
 
-A string from a limited dictionary. SIAM clients may build the data
-representation based on the value of this attribute. Example:
-"PortTraffic".
+A string from a limited dictionary of predefined service component types. It
+refers to a service template which identifies the attributes which are
+required for each component type.
 
-=item * siam.svcdata.driver
+=item * siam.svcc.inventory_id
 
-Name of the data back-end driver. The front-end system is supposed to
-know hoe to retrieve the data based on the driver name and the relevant
-attributes of a data element. Examples: I<Torrus.TimeSeries>,
-I<Torrus.MonthlyUsage>
+Service Component ID in external inventory.
+
+=item * siam.svcc.devc_id
+
+Identifier of an associated SIAM::DeviceComponent object or NIL.
+
 
 =back
 
 
-Attribute examples:
-
-=over 4
-
-=item * torrus.server, torrus.url-prefix, torrus.tree, torrus.nodeid
-
-Example of a reference to a Torrus data element.
-
-=item * monthly_usage.dsn, monthly_usage.username, monthly_usage.password,
-monthly_usage.svcid
-
-Example of a reference to Torrus monthly traffic statistics, such as
-95th Percentile bandwidth utilization.
-
-
-=item * vmstats.dsn, vmstats.username, vmstats.password, vmstats.vm_server,
-vmstats.vm_entity, ...
-
-Example of a reference to VmWare server statistics in an SQL database.
-
-=back
 
 
 =head2 SIAM::Device
 
-Device objects describe the physical or virtual devices which are
-associated with Service Units. One Unit can be associated with zero or
-one Device.
+Device objects describe physical or virtual devices. A device is usually
+a single point of management, such as IP address and SNMP access
+credentials.
 
 Device objects are contained in the root object.
 
@@ -348,17 +323,77 @@ Device name.
 
 =back
 
-Attribute examples:
+Conditions:
 
 =over 4
 
-=item * snmp.managed, snmp.host, snmp.version, snmp.community, ...
+=item * siam.device.set_components
 
-Attributes that define SNMP access to the device.
+The value of this condition is a JSON array of hashes, and each has
+represents a Device Component object and its attributes. The driver
+implementation should automatically delete all device components which
+are not defined in this array.
 
-=item * asset.owner
+=back
 
-Attribute that allows to distinguish between ISP's own and foreign devices.
+
+
+=head2 SIAM::DeviceComponent
+
+Device Component objects describe physical or virtual parts of a device
+which can be assigned to a Service Component. 
+
+Device Component objects are contained in Device objects.
+
+Certain types of devices allow only one servcie to be associated with a
+device. In this case, a Device object has only one Device Component.
+
+Mandatory attributes:
+
+=over 4
+
+=item * siam.devc.inventory_id
+
+Reference to an identifier in an external inventory system.
+
+=item * siam.devc.type
+
+Type of the component. Known values are: C<IFMIB.Port>, C<Power.PDU>,
+C<HOST>, ...
+
+=item * siam.devc.name
+
+Name of the component, such as network port name.
+
+=item * siam.devc.full_name
+
+A string which represents the device component. It is supposed to be
+composed from the containing device's name and the component name.
+
+=item * siam.devc.description
+
+Component description, such as the port description configured by the
+network administrator.
+
+=back
+
+Optional attributes:
+
+=over 4
+
+=item * siam.devc.is_attached
+
+If the attribute is not defined, false value is assumed. If the value is
+set to true, the attribute "siam.devc.attached_to" is mandatory, and it
+indicates that this device component is attached to another device
+component.
+
+=item * siam.devc.attached_to
+
+If "siam.devc.is_attached" returns true, this attrubute must contain the
+object ID of another device component within the same device. This
+defines the hierarchy of device components within a device (for example,
+a MEF EVC is attached to a physical port).
 
 =back
 
@@ -521,11 +556,80 @@ Name of the attribute.
 
 
 
+=head2 SIAM::Report
+
+A Report object can be contained in any of other valid objects, except
+for another SIAM::Report. The correspondinig container should return
+true value for the C<siam.object.has_reports> attribute.
+
+A Report object does not contain any objects. The contents of the report
+are retrieved via the C<siam.report.content> computable.
+
+The SIAM driver acts as a storage for report contents, and also it
+defines the list of reports for particular inventory objects. An
+external report generation program, such as Torrus SIAM plugin,
+generates the reports and pushes them back to the driver by setting the
+corresponding conditions.
+
+Mandatory attributes:
+
+=over 4
+
+=item * siam.report.name
+
+The report name as displayed to the user.
+
+=item * siam.report.description
+
+A couple of sentences which describe the details of the report.
+
+=item * siam.report.object_class
+
+Class of objects that are returned by this report. Usually this is
+"SIAM::ServiceUnit".
+
+=item * siam.report.type
+
+A string from a limited dictionary of predefined report types. The
+report type defines behavior of the report generating program. Examples:
+"torrus.traffic.top", "torrus.bwusage.top".
+
+=item * siam.report.last_updated
+
+Returns the timestamp of the latest report generation in ISO format.
+
+=back
+
+Additional attributes depend on the report type, and are specific to
+that type. The report generation program should document all relevant
+attributes.
+
+The following conditions are defined for the reports. They are used by
+the report generation program to store the results in the driver:
+
+=over 4
+
+=item * siam.report.set_items
+
+This condition is set to tell the driver to reset the contents and add
+new items to the report. The value of the condition is a JSON-encoded
+array consisted of hashes. Each hash must have a mandatory item with the
+key C<siam.report.item_id> and an object ID in the value. The rest of
+the keys and values is defined by the report type and should be
+documented in the reporting program.
+
+=back
+
+The computable C<siam.report.content> returns a JSON array that is
+comprised of the report items as specified in C<siam.report.set_items>
+condition.
+
+
 
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011 Stanislav Sinyagin.
+Copyright 2011-2013 Stanislav Sinyagin.
 
 This program is distributed under the MIT (X11) License:
 L<http://www.opensource.org/licenses/mit-license.php>

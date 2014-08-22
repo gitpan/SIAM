@@ -4,6 +4,7 @@ use warnings;
 use strict;
 
 use Log::Handler;
+use SIAM::Report;
 
 # default log manager
 our $logmgr = Log::Handler->new(
@@ -64,6 +65,12 @@ sub new
             $self->{'_attr'}{'siam.object.complete'} = 1;
         }
 
+        # set siam.object.has_reports to false if undefined
+        if( not defined($self->{'_attr'}{'siam.object.has_reports'}) )
+        {
+            $self->{'_attr'}{'siam.object.has_reports'} = 0;
+        }
+        
         # check if mandatory attributes are defined by the driver
         if( $self->can('_mandatory_attributes') )
         {
@@ -201,6 +208,60 @@ sub get_objects_by_attribute
     return $ret;
 }
     
+
+
+=head2 deep_walk_contained_objects
+
+ my $list = $object->deep_walk_contained_objects($classname);
+
+The method walks down the tree of contained objects and retrieves a list
+of all found objects. It returns an array reference with all found objects;
+
+=cut
+
+
+sub deep_walk_contained_objects
+{
+    my $self = shift;
+    my $classname = shift;
+
+    # id => objref
+    # the hash is needed to avoid object duplications
+    my $results = {};
+    $self->_walk_recursive($classname, $results);
+
+    return [values %{$results}];
+}
+
+
+sub _walk_recursive
+{
+    my $self = shift;
+    my $classname = shift;
+    my $results = shift;
+
+    my $driver = $self->_driver;
+    my $contained_classes = $driver->fetch_contained_classes($self->id());
+
+    foreach my $obect_class (@{$contained_classes})
+    {
+        my $list = $self->get_contained_objects($obect_class);
+
+        if( $obect_class eq $classname )
+        {
+            foreach my $item (@{$list})
+            {
+                $results->{$item->id()} = $item;
+            }
+        }
+            
+        foreach my $item (@{$list})
+        {
+            $item->_walk_recursive($classname, $results);
+        }
+    }
+    return;
+}
 
 
 
@@ -348,6 +409,28 @@ sub contained_in
                                      $attr->{'siam.object.id'});
 }
     
+
+
+=head2 get_reports
+
+Returns arrayref with contained SIAM::Report objects
+
+=cut
+
+sub get_reports
+{
+    my $self = shift;
+
+    if( $self->attr('siam.object.has_reports') )
+    {
+        return $self->get_contained_objects('SIAM::Report');
+    }
+    else
+    {
+        return [];
+    }
+}
+
 
 
 =head1 CLASS METHODS

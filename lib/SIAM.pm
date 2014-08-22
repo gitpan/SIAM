@@ -6,6 +6,7 @@ use strict;
 use base 'SIAM::Object';
 
 use SIAM::Contract;
+use SIAM::Device;
 use SIAM::User;
 use SIAM::Privilege;
 use SIAM::AccessScope;
@@ -15,13 +16,9 @@ use SIAM::Attribute;
 
 SIAM - Service Inventory Abstraction Model
 
-=head1 VERSION
-
-Version 0.10
-
 =cut
 
-our $VERSION = '0.10';
+our $VERSION = '1.01';
 
 
 =head1 SYNOPSIS
@@ -70,14 +67,16 @@ our $VERSION = '0.10';
       my $units = $service->get_service_units();
       foreach my $unit (@{$units}) {
         next unless $unit->is_complete();
-        # some useful attributes for the physical unit
-        my $host = $unit->attr('access.node.name');
-        my $port = $unit->attr('access.port.name');
 
         # statistics associated with the service unit
-        my $dataelements = $unit->get_data_elements();
-        foreach my $element (@{$dataelements}) {
-          next unless $element->is_complete();
+        my $components = $unit->get_components();
+        foreach my $c (@{$components}) {
+          next unless $c->is_complete();
+
+          # some useful attributes for the physical unit
+          my $host = $c->attr('access.node.name');
+          my $port = $c->attr('access.port.name');
+
           # do something with the element attributes
         }
       }
@@ -99,7 +98,7 @@ our $VERSION = '0.10';
 
   # Random access to an object
   my $el =
-    $siam->instantiate_object('SIAM::ServiceDataElement', $id);
+    $siam->instantiate_object('SIAM::ServiceComponent', $id);
 
   # Check privileges on a contract
   if( $user->has_privilege('ViewContract', $contract) ) {

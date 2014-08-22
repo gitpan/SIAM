@@ -5,19 +5,19 @@ lib/SIAM/AccessScope.pm
 lib/SIAM/Attribute.pm
 lib/SIAM/Contract.pm
 lib/SIAM/Device.pm
+lib/SIAM/DeviceComponent.pm
 lib/SIAM/Documentation/DataModel.pod
 lib/SIAM/Documentation/DriverSpec.pod
 lib/SIAM/Driver/Simple.pm
 lib/SIAM/Object.pm
 lib/SIAM/Privilege.pm
+lib/SIAM/Report.pm
 lib/SIAM/ScopeMember.pm
 lib/SIAM/Service.pm
-lib/SIAM/ServiceDataElement.pm
+lib/SIAM/ServiceComponent.pm
 lib/SIAM/ServiceUnit.pm
 lib/SIAM/User.pm
 MANIFEST			This list of files
-MANIFEST.SKIP
-META.yml
 README
 t/00-load.t
 t/10-driver-simple.t
@@ -26,3 +26,4 @@ t/driver-simple.data.yaml
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
+META.yml

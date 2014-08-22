@@ -1,6 +1,6 @@
-#!perl -T
+####!perl -T
 
-use Test::More tests => 37;
+use Test::More tests => 41;
 
 use strict;
 use warnings;
@@ -33,9 +33,9 @@ ok($siam->connect(), 'connect');
 ok($siam->get_client_config('Test')->{'x'} == 5) or
     diag('Failed to retrieve client configuration');
 
-my $dataelement = $siam->instantiate_object('SIAM::ServiceDataElement',
-                                            'SRVC0001.02.u01.d01');
-ok(defined($dataelement), '$siam->instantiate_object');
+my $component = $siam->instantiate_object('SIAM::ServiceComponent',
+                                          'SRVC0002.01.u02.c01');
+ok(defined($component), '$siam->instantiate_object');
 
 ### user: root
 note('testing the root user');
@@ -119,11 +119,11 @@ ok((not $user3->has_privilege('ViewContract', $user2_contracts->[0])),
 
 
 
-### Service units and data elements
+### Service units
 note('testing the service units and data elements');
 
 my $services = $user2_contracts->[0]->get_services();
-ok(scalar(@{$services}) == 2, 'get_services') or
+ok((scalar(@{$services}) == 2), 'get_services') or
     diag('Expected 2 services for CTRT0001, got ' . scalar(@{$services}));
 
 # find SRVC0001.01 for further testing
@@ -139,7 +139,7 @@ foreach my $obj (@{$services})
 ok(defined($s)) or diag('Expected to find Service SRVC0001.01');
 
 my $units = $s->get_service_units();
-ok(scalar(@{$units}) == 2, 'get_service_units') or
+ok((scalar(@{$units}) == 2), 'get_service_units') or
     diag('Expected 2 service units for SRVC0001.01, got ' .
          scalar(@{$units}));
 
@@ -155,20 +155,30 @@ foreach my $obj (@{$units})
 }
 ok(defined($u)) or diag('Expected to find Service Unit SRVC0001.01.u01');
 
-my $dataelements = $u->get_data_elements();
-ok(scalar(@{$dataelements}) == 1, 'get_data_elements') or
-    diag('Expected 1 data element for SRVC0001.01.u01, got ' .
-         scalar(@{$dataelements}));
+my $components = $u->get_components();
+ok(scalar(@{$components}) == 1, 'get_components') or
+    diag('Expected 1 component for SRVC0001.01.u01, got ' .
+         scalar(@{$components}));
+
+### Devices and components
+
+my $dev = $siam->get_device('ZUR8050AN33');
+ok(defined($dev)) or diag('$siam->get_device(\'ZUR8050AN33\') returned undef');
+
+my $dc = $dev->get_components();
+ok((scalar(@{$dc}) == 2), '$dev->get_components()'), or
+    diag('Expected 2 device components for ZUR8050AN33, got ' .
+         scalar(@{$dc}));
 
 ### User privileges to see attributes
 note('testing user privileges to see attributes');
 my $filtered = $siam->filter_visible_attributes($user2, $u->attributes());
 
-ok((not defined($filtered->{'access.bgp.peer.addr'}))) or
-    diag('User perpetualair is not supposed to see access.bgp.peer.addr');
+ok((not defined($filtered->{'xyz.serviceclass'}))) or
+    diag('User perpetualair is not supposed to see xyz.serviceclass');
 
-ok( defined($filtered->{'access.speed.downstream'})) or
-    diag('User perpetualair is supposed to see access.speed.downstream');
+ok( defined($filtered->{'xyz.access.redundant'})) or
+    diag('User perpetualair is supposed to see xyz.access.redundant');
 
 
 ### $object->contained_in()
@@ -177,30 +187,15 @@ my $x1 = $user2_contracts->[0]->contained_in();
 ok(not defined($x1)) or
     diag('contained_in() did not return undef as expected');
 
-my $x2 = $dataelement->contained_in();
+my $x2 = $component->contained_in();
 ok(defined($x2)) or diag('contained_in() returned undef');
 
 ok($x2->objclass eq 'SIAM::ServiceUnit') or
     diag('contained_in() returned siam.object.class: ' . $x2->objclass);
 
-ok($x2->id eq 'SRVC0001.02.u01') or
+ok($x2->id eq 'SRVC0002.01.u01') or
     diag('contained_in() returned siam.object.id: ' . $x2->id);
 
-
-### Devices and Service Units
-note('testing Device and ServiceUnit relationship');
-my $dev = $siam->get_device('ZUR8050AN33');
-ok(defined($dev)) or diag('$siam->get_device(\'ZUR8050AN33\') returned undef');
-
-$units = $dev->get_all_service_units();
-ok(scalar(@{$units}) == 1) or
-    diag('$dev->get_all_service_units() is expected to return 1 unit, got: ' .
-         scalar(@{$units}));
-
-my $unit_id = $units->[0]->id();
-ok($unit_id eq 'SRVC0001.01.u01') or
-    diag('$dev->get_all_service_units() returned "' . $unit_id .
-         '", but expected "SRVC0001.01.u01"');
 
 ### siam.contract.content_md5hash
 note('testing computable: siam.contract.content_md5hash');
@@ -210,18 +205,38 @@ ok(defined($md5sum) and $md5sum ne '') or
     diag('Computable siam.contract.content_md5hash ' .
          'returned undef or empty string');
 
-my $expected_md5 = '611ab82c3054fc9ccda157abe28536f2';
+my $expected_md5 = '2929c2392b8008ef6fd4666553c355b1';
 ok($md5sum eq $expected_md5) or
     diag('Computable siam.contract.content_md5hash ' .
          'returned unexpected value: ' . $md5sum);
 
-$siam->_driver->{'objects'}{'SRVC0001.02.u01.d01'}{'torrus.nodeid'} = 'xx';
+$siam->_driver->{'objects'}{'SRVC0001.02.u01.c01'}{'torrus.port.nodeid'} = 'xx';
 delete $siam->_driver->{'computable_cache'}{'siam.contract.content_md5hash'};
 ok($user2_contracts->[0]->computable('siam.contract.content_md5hash') ne
    $expected_md5) or
     diag('Computable siam.contract.content_md5hash did not ' .
          'change as expected');
 
+
+### Reports
+ok($user2_contracts->[0]->attr('siam.object.has_reports')) or
+    diag('CTRT0001 does not have any reports');
+
+my $reports = $user2_contracts->[0]->get_reports();
+ok(scalar(@{$reports}) == 1) or diag('Cannot retrieve reports for CTRT0001');
+
+my $report_data = $reports->[0]->get_items();
+ok(scalar(@{$report_data}) == 2) or diag('expected 2 report items');
+
+ok($report_data->[1]->{'siam.report.item'}->id() eq 'SRVC0001.02.u01.c01');
+
+
+### Deep walk
+my $walk_res =
+    $user2_contracts->[0]->deep_walk_contained_objects('SIAM::ServiceUnit');
+my $walk_count = scalar(@{$walk_res});
+ok($walk_count == 3) or diag('deep_walk_contained_objects returned ' . 
+                             $walk_count . ' objects, expected 3');
 
 ### clone_data
 note('testing SIAM::Driver::Simple->clone_data');
@@ -251,16 +266,16 @@ $fh->close;
 
 my $data = YAML::LoadFile($filename);
 my $len = scalar(@{$data});
-ok( $len == 22 ) or
-    diag('clone_data is expected to produce array of size 22, got: ' . $len);
+ok( $len == 20 ) or
+    diag('clone_data is expected to produce array of size 20, got: ' . $len);
 
-# unlink $filename;
+unlink $filename;
 
 ### manifest_attributes
 note('testing $siam->manifest_attributes()');
 my $manifest = $siam->manifest_attributes();
 my $manifest_size = scalar(@{$manifest});
-my $manifest_size_expected = 50;
+my $manifest_size_expected = 51;
 ok($manifest_size == $manifest_size_expected) or
     diag('$siam->manifest_attributes() returned ' . $manifest_size .
          ', expected: ' . $manifest_size_expected);
